@@ -46,6 +46,54 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
-        return parent::render($request, $exception);
+        if ($exception
+            instanceof
+            \Illuminate\Database\Eloquent\ModelNotFoundException)
+        {
+            return response()->json([
+                "errors" => [
+                    json_decode(json_encode([
+                        "code" => "ERROR-404",
+                        "title" => "Not Found",
+                        "message" => $exception->getMessage()
+                    ]))
+                ]
+            ], 404);
+        }
+
+        if ($exception
+            instanceof
+            \Illuminate\Contracts\Filesystem\FileNotFoundException) 
+        {
+            return response()->json([
+                "errors" => [
+                    json_decode(json_encode([
+                        "code" => "ERROR-404",
+                        "title" => "File not found"
+                    ]))
+                ]
+            ], 404);
+        }
+
+        if ($exception->getCode() == 500) {
+            return response()->json([
+                "errors" => [
+                    json_decode(json_encode([
+                        "code" => "ERROR-500",
+                        "title" => "Server error, information bellow",
+                        "message" => $exception->getMessage()
+                    ]))
+                ]
+            ]);
+        }
+        return response()->json([
+            "errors" => [
+                json_decode(json_encode([
+                    "code" => "ERROR-500",
+                    "title" => "Server error, information bellow",
+                    "message" => $exception->getMessage()
+                ]))
+            ]
+        ]);
     }
 }

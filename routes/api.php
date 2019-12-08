@@ -23,6 +23,15 @@ Route::group(['prefix' => 'auth'], function () {
 
     Route::group(['middleware' => 'auth:api'], function() {
         Route::get('logout', 'AuthController@logout');
-        Route::get('user', 'AuthController@user');
+        Route::get('user', 'AuthController@user')->name('user.profile');
     });
+});
+
+Route::group(['middleware' => 'auth:api'], function() {
+    Route::get('user/{user}', 'UserController@show')->name('user.show');
+    Route::post('issue/{issue}/attach', 'IssueController@attach')->name('issue.attach');
+    Route::apiResource('issue', 'IssueController');
+    Route::apiResource('project', 'ProjectController');
+    Route::apiResource('doc', 'DocController');
+    Route::get('/files', 'FilesController@getFile')->name('src');
 });
