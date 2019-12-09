@@ -13,7 +13,6 @@ use Illuminate\Http\UploadedFile;
 
 class IssueTest extends TestCase
 {
-    use RefreshDatabase;
 
     public function setUp(): void
     {

@@ -1,5 +1,5 @@
 <?php
-$base = 'app'.DIRECTORY_SEPARATOR.'disk';
+$base = 'disk';
 
 return [
 	#'version' => env('APP_VERSION','1.0.0'),

@@ -63,7 +63,7 @@ class Handler extends ExceptionHandler
 
         if ($exception
             instanceof
-            \Illuminate\Contracts\Filesystem\FileNotFoundException) 
+            \Illuminate\Contracts\Filesystem\FileNotFoundException)
         {
             return response()->json([
                 "errors" => [

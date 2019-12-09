@@ -85,10 +85,10 @@ class IssueController extends Controller
             foreach ($res['files'] as $file) {
                 if(!empty($file)) {
                     $doc = new Doc;
-                    $doc->title = pathinfo($file->getBasename(), PATHINFO_FILENAME);
-                    $doc->name = $file->getBasename();
-                    $doc->extension = $file->guessExtension();
-                    $doc->size = $file->getSize();
+                    $doc->title = $file['title'];
+                    $doc->name = $file['name'];
+                    $doc->extension = $file['extension'];
+                    $doc->size = $file['file']->getSize();
                     $doc->docable_id = $issue->id;#Para decir el id del modelo con el que esta asociado el archivo
                     $doc->docable_type = Issue::class;#Para decir de que clase es si es issue o proyecto
                     $doc->save();
