@@ -13,7 +13,7 @@ class FilesController extends Controller
 		if($type = request()->type){
 			switch ($type) {
 				case 'issues':
-					$path = config('constants.paths.issues') . DIRECTORY_SEPARATOR . $filename;
+					$path = 'app'.DIRECTORY_SEPARATOR.config('constants.paths.issues') . DIRECTORY_SEPARATOR . $filename;
 					break;
 				default:
 					abort(404);
