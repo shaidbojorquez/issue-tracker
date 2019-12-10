@@ -19,7 +19,7 @@ class IssueController extends Controller
      */
     public function index()
     {
-        return IssueResource::collection(Issue::all());
+        return IssueResource::collection(Issue::paginate(10));
     }
 
     /**
