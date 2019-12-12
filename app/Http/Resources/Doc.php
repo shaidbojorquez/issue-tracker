@@ -14,7 +14,6 @@ class Doc extends JsonResource
      * @param  \Illuminate\Http\Request  $request
      * @return array
      */
-    #Al sobreescribir esto pongo como quiero que se vea mi JSON
     public function toArray($request)
     {
         return [

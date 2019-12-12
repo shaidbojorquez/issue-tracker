@@ -26,7 +26,8 @@ class Issue extends JsonResource
                 "description" => $this->description,
                 "priority" => $this->priority,
                 "status" => $this->status,
-                "assignee" => (!empty($this->assignee)) ? new UserResource($this->assignee) : null,
+                "assigned_to" => (!empty($this->assigned_to)) ? new UserResource($this->assigned_to) : null,
+                "creator" => (!empty($this->creator)) ? new UserResource($this->creator) : null,
                 "type" => $this->type
             ],
             "links" => [

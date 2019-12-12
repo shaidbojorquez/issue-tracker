@@ -2,24 +2,11 @@
 
 namespace App;
 
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class Tools
 {
-	/*static function secureUploadFile($name, $path, $prefix = '')
-	{
-		$res = '';
-		if(request()->file($name)){
-			$file = request()->file($name);
-			$tname = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-			$res = $prefix.Str::slug($tname, '-') . '.' . $file->getClientOriginalExtension();
-			$file->move(storage_path(self::setSubdomain($path)),$res);
-		}
-		return $res;
-	}*/
-	static function secureUploadFiles($name, $path, $prefix = '')
+    static function secureUploadFiles($name, $path, $prefix = '')
 	{
 		$data = array(
 			"hasWarnings" => false,

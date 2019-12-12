@@ -33,5 +33,5 @@ Route::group(['middleware' => 'auth:api'], function() {
     Route::apiResource('issue', 'IssueController');
     Route::apiResource('project', 'ProjectController');
     Route::apiResource('doc', 'DocController');
-    Route::get('/files', 'FilesController@getFile')->name('src');
+    Route::get('/files', 'DocController@getFile')->name('src');
 });

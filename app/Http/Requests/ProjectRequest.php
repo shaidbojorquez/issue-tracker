@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProjectRequest extends FormRequest
 {
@@ -31,36 +32,52 @@ class ProjectRequest extends FormRequest
                     'data.attributes.title' => 'required|max:100',
                     'data.attributes.description' => 'required|max:255',
                     'data.attributes.begin_date' => [
-                        'date'
+                        'date',
+                        'before:data.attributes.end_date'
                     ],
                     'data.attributes.end_date' => [
-                        'date'
+                        'date',
+                        'after_or_equal:data.attributes.begin_date'
                     ],
                     'data.attributes.status' => [
                         'required',
                         Rule::in(['open', 'on hold', 'resolved', 'duplicate', 'invalid', 'wontfix', 'closed'])
+                    ],
+                    'data.attributes.users' => [
+                        'array'
+                    ],
+                    'data.attributes.users.*' => [
+                        'exists:users,id' #tabla, columna
                     ]
                 ];
             }
-            case 'PUT': 
+            case 'PUT':
             case 'PATCH':
             {
                 return[
                     'data.attributes.title' => 'required|max:100',
                     'data.attributes.description' => 'required|max:255',
                     'data.attributes.begin_date' => [
-                        'date'
+                        'date',
+                        'before:data.attributes.end_date'
                     ],
                     'data.attributes.end_date' => [
-                        'date'
+                        'date',
+                        'after_or_equal:data.attributes.begin_date'
                     ],
                     'data.attributes.status' => [
                         'required',
                         Rule::in(['open', 'on hold', 'resolved', 'duplicate', 'invalid', 'wontfix', 'closed'])
+                    ],
+                    'data.attributes.users' => [
+                        'array'
+                    ],
+                    'data.attributes.users.*' => [
+                        'exists:users,id'
                     ]
                 ];
             }
-            
+
             default:
                 # code...
                 break;

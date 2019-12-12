@@ -146,6 +146,17 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        // Project Attributes
+        'data.attributes.title' => 'title',
+        'data.attributes.description' => 'description',
+        'data.attributes.begin_date' => 'begin date',
+        'data.attributes.end_date' => 'end date',
+        'data.attributes.status' => 'status',
+        'data.attributes.users' => 'user',
+        'data.attributes.priority' => 'priority',
+        'data.attributes.project_id' => 'project id',
+        'data.attributes.assigned_to' => 'assigned user id'
+    ],
 
 ];

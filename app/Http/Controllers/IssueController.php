@@ -8,6 +8,7 @@ use App\Doc;
 use App\Http\Resources\Issue as IssueResource;
 use App\Http\Resources\Doc as DocResource;
 use App\Http\Requests\IssueRequest;
+use App\Http\Requests\DocRequest;
 use Illuminate\Http\Request;
 
 class IssueController extends Controller
@@ -36,8 +37,11 @@ class IssueController extends Controller
             "priority" => $request->input('data.attributes.priority'),
             "status" => $request->input('data.attributes.status'),
             "type" => $request->input('data.attributes.type'),
-            "assignee_id" => $request->input('data.attributes.assignee_id')
+            "project_id" => $request->input('data.attributes.project_id')
         ]);
+        $issue->setCreator(auth()->user()->id);#Con el que me autentico
+        $issue->setAssignedTo($request->input('data.attributes.assigned_to'));#El que yo envio
+        $issue->save();
 
         // if (request()->ajax()) {
         return new IssueResource($issue);
@@ -69,35 +73,40 @@ class IssueController extends Controller
             "priority" => $request->input('data.attributes.priority'),
             "status" => $request->input('data.attributes.status'),
             "type" => $request->input('data.attributes.type'),
-            "assignee_id" => $request->input('data.attributes.assignee_id')
+            "project_id" => $request->input('data.attributes.project_id')
         ]);
+        $issue->setAssignedTo($request->input('data.attributes.assigned_to'));
         $issue->save();
 
         return new IssueResource($issue);
     }
 
-    public function attach(Request $request, Issue $issue)
+    public function attach(DocRequest $request, Issue $issue)
     {
-        if($request->file('attachments')){
-            $path = config('constants.paths.issues') . DIRECTORY_SEPARATOR . 'issue_' . $issue->id; #voy a constants.php
-            $res = Tools::secureUploadFiles('attachments', $path, 'attachment_');
-            $docsAttached = collect([]);
-            foreach ($res['files'] as $file) {
-                if(!empty($file)) {
-                    $doc = new Doc;
-                    $doc->title = $file['title'];
-                    $doc->name = $file['name'];
-                    $doc->extension = $file['extension'];
-                    $doc->size = $file['file']->getSize();
-                    $doc->docable_id = $issue->id;#Para decir el id del modelo con el que esta asociado el archivo
-                    $doc->docable_type = Issue::class;#Para decir de que clase es si es issue o proyecto
-                    $doc->save();
+        if (!empty($issue->creator) && $issue->creator->id === auth()->user()->id) {
+            if($request->file('attachments')){
+                $path = config('constants.paths.issues') . DIRECTORY_SEPARATOR . 'issue_' . $issue->id;
+                $res = Tools::secureUploadFiles('attachments', $path, 'attachment_');
+                $docsAttached = collect([]);
+                foreach ($res['files'] as $file) {
+                    if(!empty($file)) {
+                        $doc = new Doc;
+                        $doc->title = $file['title'];
+                        $doc->name = $file['title'];
+                        $doc->extension = $file['extension'];
+                        $doc->size = $file['file']->getSize();
+                        $doc->docable_id = $issue->id;
+                        $doc->docable_type = Issue::class;
+                        $doc->save();
 
-                    $docsAttached->push($doc);
+                        $docsAttached->push($doc);
+                    }
                 }
-            }
 
-            return DocResource::collection($docsAttached);
+                return DocResource::collection($docsAttached);
+            }
+        }else{
+            abort(401, "You need to be the owner of the issue to attacht documents");
         }
     }
 
@@ -108,9 +117,13 @@ class IssueController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function destroy(Issue $issue)
-    {
-        $issue->delete();
-
-        return new IssueResource($issue);
+    { #Solo el creador puede eliminar el issue
+        if (!empty($issue->creator) && $issue->creator->id === auth()->user()->id) {
+            $issue->users()->detach();
+            $issue->delete();
+            return new IssueResource($issue);
+        } else {
+            abort(401, "You need to be the owner of the issue to delete it.");
+        }
     }
 }

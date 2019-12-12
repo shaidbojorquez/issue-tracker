@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Rules\UserInProject;
+use App\Rules\UserIsCreator;
 
 class IssueRequest extends FormRequest
 {
@@ -41,10 +43,20 @@ class IssueRequest extends FormRequest
                     'data.attributes.status' => [
                         'required',
                         Rule::in(['open', 'on hold', 'resolved', 'duplicate', 'invalid', 'wontfix', 'closed'])
+                    ],
+                    'data.attributes.project_id' => [
+                        'required',
+                        'exists:projects,id', #tabla, columna
+                        new UserInProject()
+                    ],
+                    'data.attributes.assigned_to' => [
+                        'required',
+                        'exists:users,id',
+                        new UserInProject()
                     ]
                 ];
             }
-            case 'PUT': 
+            case 'PUT':
             case 'PATCH':
             {
                 return[
@@ -60,10 +72,20 @@ class IssueRequest extends FormRequest
                     'data.attributes.status' => [
                         'required',
                         Rule::in(['open', 'on hold', 'resolved', 'duplicate', 'invalid', 'wontfix', 'closed'])
+                    ],
+                    'data.attributes.project_id' => [
+                        'required',
+                        'exists:projects,id',
+                        new UserInProject()
+                    ],
+                    'data.attributes.assigned_to' => [
+                        'required',
+                        'exists:users,id',
+                        new UserInProject()
                     ]
                 ];
             }
-            
+
             default:
                 # code...
                 break;

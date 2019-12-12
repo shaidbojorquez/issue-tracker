@@ -23,21 +23,7 @@ class Doc extends Model
         switch ($this->docable_type) {
             case Issue::class:
                 $issue = Issue::findOrFail($this->docable_id);
-                return 'issue_' . $issue->id . DIRECTORY_SEPARATOR . $this->name;
-                break;
-
-            default:
-                # code...
-                break;
-        }
-    }
-
-
-    public function getTypeAttribute()
-    {
-        switch ($this->docable_type) {
-            case Issue::class:
-                return 'issues';
+                return 'issue_' . $issue->id . DIRECTORY_SEPARATOR . $this->name . '.' . $this->extension;
                 break;
 
             default:
@@ -50,6 +36,19 @@ class Doc extends Model
     {
         $name = $this->file_name;
         return src($name, $this->type);
+    }
+
+    public function getTypeAttribute()
+    {
+        switch ($this->docable_type) {
+            case Issue::class:
+                return 'issues';
+                break;
+
+            default:
+                # code...
+                break;
+        }
     }
 
     // Relations

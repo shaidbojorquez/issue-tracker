@@ -12,6 +12,6 @@ if (! function_exists('src')) {
     {
     	$params = ['filename'=>$filename];
     	if($default)$params['type'] = $default;
-    	return route('src', $params); #utiliza Route::get('/files', 'FilesController@getFile')->name('src');
+    	return route('src', $params);
     }
 }

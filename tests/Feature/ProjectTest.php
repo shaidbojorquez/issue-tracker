@@ -12,12 +12,13 @@ use Laravel\Passport\Passport;
 class ProjectTest extends TestCase
 {
     use RefreshDatabase;
+    protected $user;
 
     public function setUp(): void
     {
         parent::setUp();
-        $user = factory(User::class)->create();
-        Passport::actingAs($user);
+        $this->user = factory(User::class)->create();
+        Passport::actingAs($this->user);
     }
 
     /**

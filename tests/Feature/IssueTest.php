@@ -8,17 +8,24 @@ use Tests\TestCase;
 use Laravel\Passport\Passport;
 use App\User;
 use App\Issue;
+use App\Project;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
+use App\Http\Resources\Issue as IssueResource;
+use App\Http\Resources\User as UserResource;
+use App\Http\Resources\Project as ProjectResource;
 
 class IssueTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected $user;
 
     public function setUp(): void
     {
         parent::setUp();
-        $user = factory(User::class)->create();#necesito estar autenticado
-        Passport::actingAs($user);#metodo de lavravel passport para las pruebas, hace que mis purebas tengan en su cabecera el token para el usuario que cree
+        $this->user = factory(User::class)->create();
+        Passport::actingAs($this->user);
     }
 
     /**
@@ -55,35 +62,47 @@ class IssueTest extends TestCase
     public function testCanCreateIssues()
     {
         // Given
-        $issue = factory(Issue::class)->make();#creo el issue, no lo guarda en bd solo crea la instancia
+        $assignTo = factory(User::class)->create();
+        $project = factory(Project::class)->create();
+        $project->users()->sync([auth()->user()->id, $assignTo->id]); #Valida que ambos pertenezcamos
+        $project->save();
+
+        $issue = factory(Issue::class)->make();
+        $issueAttributes = $issue->toArray();
+        unset($issueAttributes['creator']);
+
         $issueData = [
             "data" => [
                 "type"       => "issues",
-                "attributes" => $issue->toArray()#del issue que cree, pasa los atributos del modelo a un arrelgo
+                "attributes" => array_merge($issueAttributes, [
+                    'project_id' => $project->id,
+                    'assigned_to' => $assignTo->id
+                ])
             ]
         ];
 
         // When
-        $response = $this->json('POST', '/api/issue', $issueData);#lo envio a mi api para que se guarde en base de datos
+        $response = $this->json('POST', '/api/issue', $issueData);
 
         // Then
         // Assert it sends the correct HTTP Status
         $response->assertStatus(201);
 
         // Assert the response has the correct structure
-        $response->assertJsonStructure([#Solo que tenga data
+        $response->assertJsonStructure([
             "data"
         ]);
 
-        $body = $response->decodeResponseJson();#trnasforma el json que devuelve la api a un arreglo
+        $body = $response->decodeResponseJson();
 
+        unset($issueData['data']['attributes']['project_id']);
         // Assert the model was created
         // with the correct data
         $response->assertJsonFragment([
             "data" => [
                 "type" => "issues",
-                "id" => $body['data']['id'],#el id de mi issue
-                "attributes" => array_merge($issue->toArray(), ['assignee' => null]),#para segurarme de que regrese con lo que yo le mande
+                "id" => $body['data']['id'],
+                "attributes" => $body['data']['attributes'],
                 "links" => [
                     "self" => route('issue.show', [$body['data']['id']])
                 ]
@@ -93,10 +112,10 @@ class IssueTest extends TestCase
         // Assert model is on the database
         $this->assertDatabaseHas(
             'issues',
-            array_merge(['id' => $body['data']['id']], $issue->toArray())#Busca lo que le envie en la base de datos
+            array_merge(['id' => $body['data']['id']])
         );
 
-        return $body;#Respuesta de la api
+        return $body;
     }
 
     /**
@@ -107,23 +126,33 @@ class IssueTest extends TestCase
     public function testCanUpdateIssues()
     {
         // Given
-        $issue = factory(Issue::class)->create();#Lo guarda en la base de datos
-        $issueAttributes = $issue->toArray();#Saca los atributos del issue que creaste y los pone en un arreglo
+        $assignTo = factory(User::class)->create();
+        $project = factory(Project::class)->create();
+        $project->users()->sync([auth()->user()->id, $assignTo->id]);
+        $project->save();
 
-        // We remove attributes that are not needed for update, No me sirven para actualizar
+        $issue = factory(Issue::class)->create();
+        $issueAttributes = $issue->toArray();
+
+        // We remove attributes that are not needed for update
         unset($issueAttributes['created_at']);
         unset($issueAttributes['updated_at']);
         unset($issueAttributes['id']);
+        unset($issueAttributes['creator']);
 
         $issueData = [
             "data" => [
                 "type"       => "issues",
-                "attributes" => array_merge($issueAttributes, ['title' => '(ES) Nuevo título'])#Le pongo otro titulo
+                "attributes" => array_merge($issueAttributes, [
+                    'title' => '(ES) Nuevo título',
+                    'project_id' => $project->id,
+                    'assigned_to' => $assignTo->id
+                ])
             ]
         ];
 
         // When
-        $response = $this->json('PUT', '/api/issue/' . $issue->id, $issueData);#Le mando a la ruta el id del issue y los datos nuevos
+        $response = $this->json('PUT', '/api/issue/' . $issue->id, $issueData);
 
         // Then
         // Assert it sends the correct HTTP Status
@@ -134,15 +163,15 @@ class IssueTest extends TestCase
             "data"
         ]);
 
-        $body = $response->decodeResponseJson(); #solo hace esto en esta linea
+        $body = $response->decodeResponseJson();
 
         // Assert the model was created
-        // with the correct data Que la respuesta tenga ese json
+        // with the correct data
         $response->assertJsonFragment([
             "data" => [
                 "type" => "issues",
                 "id" => $body['data']['id'],
-                "attributes" => array_merge($issueAttributes, ['assignee' => null, 'title' => '(ES) Nuevo título']),
+                "attributes" => $body['data']['attributes'],
                 "links" => [
                     "self" => route('issue.show', [$body['data']['id']])
                 ]
@@ -152,7 +181,7 @@ class IssueTest extends TestCase
         // Assert model is on the database
         $this->assertDatabaseHas(
             'issues',
-            array_merge(['id' => $body['data']['id']], $issueData['data']['attributes'])
+            ['id' => $body['data']['id']]
         );
 
         return $body;
@@ -161,8 +190,9 @@ class IssueTest extends TestCase
     public function testCanAttachFileToIssue()
     {
         $issue = factory(Issue::class)->create();
-
-        $file = UploadedFile::fake()->create('document3.pdf', 25);#Nombre y tamaño
+        $issue->setCreator(auth()->user()->id);
+        $issue->save();
+        $file = UploadedFile::fake()->create('document3.pdf', 25);
         $response = $this->json('POST', '/api/issue/' . $issue->id . '/attach', [
             'attachments' => $file,
         ]);
@@ -177,11 +207,183 @@ class IssueTest extends TestCase
 
     public function testCanDeleteIssue()
     {
+        $project = factory(Project::class)->create();
+        $project->users()->sync([auth()->user()->id]);
+        $project->save();
+
         $issue = factory(Issue::class)->create();
+        $issue->project_id = $project->id;
+        $issue->setAssignedTo(auth()->user()->id);
+        $issue->save();
+
         $response = $this->json('DELETE', '/api/issue/' . $issue->id);
 
         // Then
         // Assert it sends the correct HTTP Status
         $response->assertStatus(200);
+    }
+
+    /**
+     * Testing user cant create issue if he is not in the project.
+     *
+     * @return void
+     */
+    public function testUserCantCreateIssues()
+    { #No lo puede crear por que no asignoa  nadie al proyecto
+        // Given
+        $assignTo = factory(User::class)->create();
+        $project = factory(Project::class)->create();
+
+        $issue = factory(Issue::class)->make();
+        $issueAttributes = $issue->toArray();
+        unset($issueAttributes['creator']);
+
+        $issueData = [
+            "data" => [
+                "type"       => "issues",
+                "attributes" => array_merge($issueAttributes, [
+                    'project_id' => $project->id,
+                    'assigned_to' => $assignTo->id
+                ])
+            ]
+        ];
+
+        // When
+        $response = $this->json('POST', '/api/issue', $issueData);
+
+        // Then
+        // Assert it sends the correct HTTP Status
+        $response->assertStatus(422);
+    }
+
+    /**
+     * Testing user cant be assigned to an issue if he is not in the project.
+     *
+     * @return void
+     */
+    public function testUserCantBeAssignedIssues()
+    { #No puede ser asignado al issue
+        // Given
+        $assignTo = factory(User::class)->create();
+        $project = factory(Project::class)->create();
+        $project->users()->sync([$this->user->id]);
+        $project->save();
+
+        $issue = factory(Issue::class)->make();
+        $issueAttributes = $issue->toArray();
+        unset($issueAttributes['creator']);
+
+        $issueData = [
+            "data" => [
+                "type"       => "issues",
+                "attributes" => array_merge($issueAttributes, [
+                    'project_id' => $project->id,
+                    'assigned_to' => $assignTo->id
+                ])
+            ]
+        ];
+
+        // When
+        $response = $this->json('POST', '/api/issue', $issueData);
+
+        // Then
+        // Assert it sends the correct HTTP Status
+        $response->assertStatus(422);
+    }
+
+    /**
+     * Testing user cant update issues if he is not in the project.
+     *
+     * @return void
+     */
+    public function testCantUpdateIssues()
+    {
+        // Given
+        $assignTo = factory(User::class)->create();
+        $project = factory(Project::class)->create();
+        $project->users()->sync([$assignTo->id]);
+        $project->save();
+
+        $issue = factory(Issue::class)->create();
+        $issueAttributes = $issue->toArray();
+
+        // We remove attributes that are not needed for update
+        unset($issueAttributes['created_at']);
+        unset($issueAttributes['updated_at']);
+        unset($issueAttributes['id']);
+        unset($issueAttributes['creator']);
+
+        $issueData = [
+            "data" => [
+                "type"       => "issues",
+                "attributes" => array_merge($issueAttributes, [
+                    'title' => '(ES) Nuevo título',
+                    'project_id' => $project->id,
+                    'assigned_to' => $assignTo->id
+                ])
+            ]
+        ];
+
+        // When
+        $response = $this->json('PUT', '/api/issue/' . $issue->id, $issueData);
+
+        // Then
+        // Assert it sends the correct HTTP Status
+        $response->assertStatus(422);
+
+    }
+
+    public function testCantAttachFileToIssueCreator(){
+        $assignTo = factory(User::class)->create();
+        $issue = factory(Issue::class)->create();
+        $issue->setCreator( $assignTo->id);
+        $issue->save();
+        $file = UploadedFile::fake()->create('document3.pdf', 500);
+        $response = $this->json('POST', '/api/issue/' . $issue->id . '/attach', [
+            'attachments' => $file,
+        ]);
+
+        // Then
+        // Assert it sends the correct HTTP Status
+        $response->assertStatus(401);
+    }
+
+    public function testCantAttachFileToIssue()
+    {
+        $issue = factory(Issue::class)->create();
+
+        $file = UploadedFile::fake()->create('document3.exe', 50000);
+        $response = $this->json('POST', '/api/issue/' . $issue->id . '/attach', [
+            'attachments' => $file,
+        ]);
+
+        // Then
+        // Assert it sends the correct HTTP Status
+        $response->assertStatus(422);
+    }
+
+    /**
+     * Testing user cant delete issues if he is not the creator/owner of the issue.
+     *
+     * @return void
+     */
+    public function testCantDeleteIssue()
+    {
+        $assignTo = factory(User::class)->create();
+        $project = factory(Project::class)->create();
+        $project->users()->sync([$assignTo->id]);
+        $project->save();
+
+        $issue = factory(Issue::class)->create();
+        $issue->project_id = $project->id;
+        $issue->setAssignedTo($assignTo->id);
+        $issue->setCreator($assignTo->id); // diferent of current auth user
+        $issue->save();
+
+        $response = $this->json('DELETE', '/api/issue/' . $issue->id);
+
+        // Then
+        // Assert it sends the correct HTTP Status
+        $response->assertStatus(401);
     }
 }

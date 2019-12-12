@@ -4,6 +4,8 @@ namespace App\Exceptions;
 
 use Exception;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Illuminate\Auth\AuthenticationException;
 
 class Handler extends ExceptionHandler
 {
@@ -46,32 +48,28 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
-        if ($exception
-            instanceof
-            \Illuminate\Database\Eloquent\ModelNotFoundException)
-        {
+        if ($exception instanceof
+            \Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json([
                 "errors" => [
                     json_decode(json_encode([
-                        "code" => "ERROR-404",
-                        "title" => "Not Found",
-                        "message" => $exception->getMessage()
-                    ]))
-                ]
+                        "code"    => "ERROR-404",
+                        "title"   => "Not Found",
+                        "message" => $exception->getMessage(),
+                    ])),
+                ],
             ], 404);
         }
 
-        if ($exception
-            instanceof
-            \Illuminate\Contracts\Filesystem\FileNotFoundException)
-        {
+        if ($exception instanceof
+            \Illuminate\Contracts\Filesystem\FileNotFoundException) {
             return response()->json([
                 "errors" => [
                     json_decode(json_encode([
-                        "code" => "ERROR-404",
-                        "title" => "File not found"
-                    ]))
-                ]
+                        "code"  => "ERROR-404",
+                        "title" => "File not found",
+                    ])),
+                ],
             ], 404);
         }
 
@@ -79,21 +77,52 @@ class Handler extends ExceptionHandler
             return response()->json([
                 "errors" => [
                     json_decode(json_encode([
-                        "code" => "ERROR-500",
-                        "title" => "Server error, information bellow",
-                        "message" => $exception->getMessage()
-                    ]))
-                ]
-            ]);
+                        "code"    => "ERROR-500",
+                        "title"   => "Server error, information bellow",
+                        "message" => $exception->getMessage(),
+                    ])),
+                ],
+            ], 500);
         }
-        return response()->json([
-            "errors" => [
-                json_decode(json_encode([
-                    "code" => "ERROR-500",
-                    "title" => "Server error, information bellow",
-                    "message" => $exception->getMessage()
-                ]))
-            ]
-        ]);
+
+        if (
+            $exception instanceof HttpException
+        ) {
+            return response()->json([
+                "errors" => [
+                    json_decode(json_encode([
+                        "code"    => "ERROR-" . $exception->getStatusCode(),
+                        "title"   => "Request error",
+                        "message" => $exception->getMessage(),
+                    ])),
+                ],
+            ], $exception->getStatusCode());
+        }
+
+        return parent::render($request, $exception);
+    }
+
+    /**
+     * Convert an authentication exception into a response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Auth\AuthenticationException  $exception
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    protected function unauthenticated($request, AuthenticationException $exception)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                "errors" => [
+                    json_decode(json_encode([
+                        "code"    => "ERROR-401",
+                        "title"   => "Request error",
+                        "message" => $exception->getMessage(),
+                    ])),
+                ],
+            ], 401);
+        }
+
+        return redirect()->guest($exception->redirectTo() ?? route('login'));
     }
 }

@@ -25,7 +25,7 @@ class ProjectController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(ProjectRequest $request)
     {
         $project = Project::create([
             "title" => $request->input('data.attributes.title'),
@@ -34,6 +34,11 @@ class ProjectController extends Controller
             "end_date" => $request->input('data.attributes.end_date'),
             "status" => $request->input('data.attributes.status')
         ]);
+
+        if (!empty($request->input('data.attributes.users'))) {
+            $project->users()->sync($request->input('data.attributes.users')); #sync sincroniza el arreglo que le pase, lo que tenga el arreglo lo pone tal cual en la tabla
+            $project->save();
+        }
 
         return new ProjectResource($project);
     }
@@ -44,7 +49,7 @@ class ProjectController extends Controller
      * @param  \App\Project  $project
      * @return \Illuminate\Http\Response
      */
-    public function show(Project $project)
+    public function show(ProjectRequest $project)
     {
         return new ProjectResource($project);
     }
@@ -56,7 +61,7 @@ class ProjectController extends Controller
      * @param  \App\Project  $project
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Project $project)
+    public function update(ProjectRequest $request, Project $project)
     {
         $project->fill([
             "title" => $request->input('data.attributes.title'),
@@ -66,6 +71,11 @@ class ProjectController extends Controller
             "status" => $request->input('data.attributes.status')
         ]);
         $project->save();
+
+        if (!empty($request->input('data.attributes.users'))) {
+            $project->users()->sync($request->input('data.attributes.users'));
+            $project->save();
+        }
 
         return new ProjectResource($project);
     }
