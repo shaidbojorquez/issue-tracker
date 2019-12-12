@@ -67,7 +67,7 @@ class IssueController extends Controller
      */
     public function update(IssueRequest $request, Issue $issue)
     {
-        if (!empty($issue->creator) && $issue->creator->id === auth()->user()->id) {
+       /* if (!empty($issue->creator) && $issue->creator->id === auth()->user()->id) {*/
             $issue->fill([
                 "title" => $request->input('data.attributes.title'),
                 "description" => $request->input('data.attributes.description'),
@@ -80,9 +80,10 @@ class IssueController extends Controller
             $issue->save();
 
             return new IssueResource($issue);
-            }else{
+
+          /*  }else{
                 abort(401, "You need to be the owner of the issue to update issue");
-            }
+            }*/
     }
 
     public function attach(DocRequest $request, Issue $issue)

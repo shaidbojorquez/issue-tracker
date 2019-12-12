@@ -12,7 +12,7 @@ class AuthController extends Controller
     public function signup(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string',
+            'name'     => 'required|regex:/^[\pL\s\-]+$/u',
             'email'    => 'required|string|email|unique:users',
             'password' => 'required|string|confirmed',
         ]);

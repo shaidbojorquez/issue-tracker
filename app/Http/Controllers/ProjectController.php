@@ -49,7 +49,7 @@ class ProjectController extends Controller
      * @param  \App\Project  $project
      * @return \Illuminate\Http\Response
      */
-    public function show(ProjectRequest $project)
+    public function show(Project $project)
     {
         return new ProjectResource($project);
     }
