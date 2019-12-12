@@ -386,4 +386,5 @@ class IssueTest extends TestCase
         // Assert it sends the correct HTTP Status
         $response->assertStatus(401);
     }
+
 }

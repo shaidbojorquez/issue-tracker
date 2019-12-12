@@ -157,7 +157,32 @@ class ProjectTest extends TestCase
 
         return $body;
     }
+    public function testCantUpdateProjectsDateFormat()
+    {
+        // Given
+        $project = factory(Project::class)->create();
+        $projectAttributes = $project->toArray();
 
+        // We remove attributes that are not needed for update
+        unset($projectAttributes['created_at']);
+        unset($projectAttributes['updated_at']);
+        unset($projectAttributes['id']);
+
+        $projectData = [
+            "data" => [
+                "type"       => "projects",
+                "attributes" => array_merge($projectAttributes, ['begin_date' => '(ES) Nuevo título'])
+            ]
+        ];
+
+        // When
+        $response = $this->json('PUT', '/api/project/' . $project->id, $projectData);
+
+        // Then
+        // Assert it sends the correct HTTP Status
+        $response->assertStatus(422);
+
+    }
     public function testCanDeleteProject()
     {
         $project = factory(Project::class)->create();
@@ -166,5 +191,26 @@ class ProjectTest extends TestCase
         // Then
         // Assert it sends the correct HTTP Status
         $response->assertStatus(200);
+    }
+
+
+    public function testCantDeleteProject()
+    {
+        //$project = factory(Project::class)->create();
+        $response = $this->json('DELETE', '/api/project/' . '100');
+
+        // Then
+        // Assert it sends the correct HTTP Status
+        $response->assertStatus(404);
+    }
+    public function testCantUpdateProject()
+    {
+        //$project = factory(Project::class)->create();
+        $response = $this->json('DELETE', '/api/project/' . '100');
+
+        // Then
+        // Assert it sends the correct HTTP Status
+        $response->assertStatus(404);
+
     }
 }
