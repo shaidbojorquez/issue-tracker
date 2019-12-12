@@ -67,18 +67,22 @@ class IssueController extends Controller
      */
     public function update(IssueRequest $request, Issue $issue)
     {
-        $issue->fill([
-            "title" => $request->input('data.attributes.title'),
-            "description" => $request->input('data.attributes.description'),
-            "priority" => $request->input('data.attributes.priority'),
-            "status" => $request->input('data.attributes.status'),
-            "type" => $request->input('data.attributes.type'),
-            "project_id" => $request->input('data.attributes.project_id')
-        ]);
-        $issue->setAssignedTo($request->input('data.attributes.assigned_to'));
-        $issue->save();
+        if (!empty($issue->creator) && $issue->creator->id === auth()->user()->id) {
+            $issue->fill([
+                "title" => $request->input('data.attributes.title'),
+                "description" => $request->input('data.attributes.description'),
+                "priority" => $request->input('data.attributes.priority'),
+                "status" => $request->input('data.attributes.status'),
+                "type" => $request->input('data.attributes.type'),
+                "project_id" => $request->input('data.attributes.project_id')
+            ]);
+            $issue->setAssignedTo($request->input('data.attributes.assigned_to'));
+            $issue->save();
 
-        return new IssueResource($issue);
+            return new IssueResource($issue);
+            }else{
+                abort(401, "You need to be the owner of the issue to update issue");
+            }
     }
 
     public function attach(DocRequest $request, Issue $issue)
